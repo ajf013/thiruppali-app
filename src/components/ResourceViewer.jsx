@@ -18,12 +18,23 @@ const ResourceViewer = ({ title: propTitle, url: propUrl }) => {
     // Agent Script: Injected into every page to handle navigation
     const agentScript = `
         (function() {
-            const proxyBase = "https://api.allorigins.win/raw?url=";
+            const proxyBase = "/api/proxy/";
+            
+            function getProxyUrl(targetUrl) {
+                try {
+                     const urlObj = new URL(targetUrl);
+                     // Only proxy our target domain, otherwise fetch directly (or fail if CORS)
+                     // Since we only have one proxy rule for bibleintamil, we blindly append path
+                     // But for robustness, we just append the path to proxyBase
+                     // ideally we should check if it matches the target domain.
+                     return proxyBase + urlObj.pathname.replace(/^\//, '') + urlObj.search;
+                } catch(e) { return targetUrl; }
+            }
             
             async function processAndLoad(targetUrl, targetFrameName) {
                 try {
                     // Fetch through proxy
-                    const res = await fetch(proxyBase + encodeURIComponent(targetUrl));
+                    const res = await fetch(getProxyUrl(targetUrl));
                     const text = await res.text();
                     
                     // Parse
@@ -105,7 +116,14 @@ const ResourceViewer = ({ title: propTitle, url: propUrl }) => {
         const processUrl = async (targetUrl) => {
             setIsLoading(true);
             try {
-                const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
+                let proxyUrl = targetUrl;
+                try {
+                    const urlObj = new URL(targetUrl);
+                    if (urlObj.hostname.includes('bibleintamil.com')) {
+                        proxyUrl = `/api/proxy/${urlObj.pathname.replace(/^\//, '')}${urlObj.search}`;
+                    }
+                } catch (e) { console.error('URL parse failed', e); }
+
                 const response = await fetch(proxyUrl);
                 const html = await response.text();
 
@@ -139,7 +157,12 @@ const ResourceViewer = ({ title: propTitle, url: propUrl }) => {
                             const frameUrl = new URL(src, targetUrl).href;
 
                             // Recursive fetch
-                            const frameRes = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(frameUrl)}`);
+                            let frameProxyUrl = frameUrl;
+                            if (frameUrl.includes('bibleintamil.com')) {
+                                const fUrlObj = new URL(frameUrl);
+                                frameProxyUrl = `/api/proxy/${fUrlObj.pathname.replace(/^\//, '')}${fUrlObj.search}`;
+                            }
+                            const frameRes = await fetch(frameProxyUrl);
                             const frameHtml = await frameRes.text();
 
                             const frameDoc = parser.parseFromString(frameHtml, 'text/html');

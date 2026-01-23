@@ -39,6 +39,14 @@ export default defineConfig({
     })
   ],
   server: {
-    host: true
+    host: true,
+    proxy: {
+      '/api/proxy': {
+        target: 'https://www.bibleintamil.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/proxy/, ''),
+        secure: false
+      }
+    }
   }
 })

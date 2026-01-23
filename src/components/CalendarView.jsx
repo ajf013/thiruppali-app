@@ -17,8 +17,8 @@ const CalendarView = () => {
         const fetchLiveData = async () => {
             setIsLoading(true);
             try {
-                // Use AllOrigins as CORS proxy
-                const response = await fetch('https://api.allorigins.win/raw?url=https://www.bibleintamil.com/ref2009/u_calendar2026.htm');
+                // Use internal proxy
+                const response = await fetch('/api/proxy/ref2009/u_calendar2026.htm');
                 if (!response.ok) throw new Error('Network response was not ok');
                 const html = await response.text();
 
