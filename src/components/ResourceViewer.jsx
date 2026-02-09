@@ -150,40 +150,51 @@ const ResourceViewer = ({ title: propTitle, url: propUrl }) => {
                 // 4. Handle Framesets (Deep Proxy)
                 const frames = doc.querySelectorAll('frame');
                 if (frames.length > 0) {
+                    const searchParams = new URL(targetUrl).searchParams;
+                    const nestedTarget = searchParams.get('target');
+
                     const framePromises = Array.from(frames).map(async (frame) => {
-                        const src = frame.getAttribute('src');
-                        if (src) {
-                            // Resolve absolute URL
-                            const frameUrl = new URL(src, targetUrl).href;
+                        let src = frame.getAttribute('src');
+                        if (!src) return;
 
-                            // Recursive fetch
-                            let frameProxyUrl = frameUrl;
-                            if (frameUrl.includes('bibleintamil.com')) {
-                                const fUrlObj = new URL(frameUrl);
-                                frameProxyUrl = `/api/proxy/${fUrlObj.pathname.replace(/^\//, '')}${fUrlObj.search}`;
-                            }
-                            const frameRes = await fetch(frameProxyUrl);
-                            const frameHtml = await frameRes.text();
-
-                            const frameDoc = parser.parseFromString(frameHtml, 'text/html');
-
-                            // Inject Base/Agent into Frame
-                            const frameBase = frameDoc.createElement('base');
-                            frameBase.href = frameUrl;
-                            frameDoc.head.prepend(frameBase);
-
-                            const frameScript = frameDoc.createElement('script');
-                            frameScript.textContent = agentScript;
-                            frameDoc.head.appendChild(frameScript);
-
-                            // Rewrite targets
-                            frameDoc.querySelectorAll('a, form').forEach(el => {
-                                if (el.target === '_top' || el.target === '_parent') el.target = '_self';
-                            });
-
-                            const blob = new Blob([frameDoc.documentElement.outerHTML], { type: 'text/html' });
-                            frame.src = URL.createObjectURL(blob);
+                        // Check if this is the main content frame and we have a nested target
+                        // Typically the second frame [1] or specific names like "main" or "bottom"
+                        // For u_startingreflection.htm, it's the second frame and has no name.
+                        const frameIndex = Array.from(frames).indexOf(frame);
+                        if (nestedTarget && (frame.name === 'main' || frameIndex === 1)) {
+                            src = nestedTarget;
                         }
+
+                        // Resolve absolute URL
+                        const frameUrl = new URL(src, targetUrl).href;
+
+                        // Recursive fetch
+                        let frameProxyUrl = frameUrl;
+                        if (frameUrl.includes('bibleintamil.com')) {
+                            const fUrlObj = new URL(frameUrl);
+                            frameProxyUrl = `/api/proxy/${fUrlObj.pathname.replace(/^\//, '')}${fUrlObj.search}`;
+                        }
+                        const frameRes = await fetch(frameProxyUrl);
+                        const frameHtml = await frameRes.text();
+
+                        const frameDoc = parser.parseFromString(frameHtml, 'text/html');
+
+                        // Inject Base/Agent into Frame
+                        const frameBase = frameDoc.createElement('base');
+                        frameBase.href = frameUrl;
+                        frameDoc.head.prepend(frameBase);
+
+                        const frameScript = frameDoc.createElement('script');
+                        frameScript.textContent = agentScript;
+                        frameDoc.head.appendChild(frameScript);
+
+                        // Rewrite targets
+                        frameDoc.querySelectorAll('a, form').forEach(el => {
+                            if (el.target === '_top' || el.target === '_parent') el.target = '_self';
+                        });
+
+                        const blob = new Blob([frameDoc.documentElement.outerHTML], { type: 'text/html' });
+                        frame.src = URL.createObjectURL(blob);
                     });
                     await Promise.all(framePromises);
                 }

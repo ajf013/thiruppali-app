@@ -7,10 +7,18 @@ const ResourceCard = ({ title, url, icon: Icon, delay, isHighlighted, clickEffec
     const handleClick = (e) => {
         if (isInternal) {
             e.preventDefault();
+            const action = () => {
+                if (url.startsWith('http')) {
+                    navigate('/resource', { state: { url, title } });
+                } else {
+                    navigate(url);
+                }
+            };
+
             if (clickEffect) {
-                setTimeout(() => navigate(url), 150);
+                setTimeout(action, 150);
             } else {
-                navigate(url);
+                action();
             }
         }
     };

@@ -42,8 +42,9 @@ const CalendarView = () => {
     const parseCalendarHtml = (html) => {
         const newData = {};
         const tamilMonths = {
-            "ஜனவரி": 0, "பிப்ரவரி": 1, "மார்ச்": 2, "ஏப்ரல்": 3, "மே": 4, "ஜூன்": 5,
-            "ஜூலை": 6, "ஆகஸ்ட்": 7, "செப்டம்பர்": 8, "அக்டோபர்": 9, "நவம்பர்": 10, "டிசம்பர்": 11
+            "ஜனவரி": 0, "பிப்ரவரி": 1, "பிப்ரவரி": 1, "மார்ச்": 2, "ஏப்ரல்": 3, "மே": 4, "ஜூன்": 5,
+            "ஜூலை": 6, "ஆகஸ்ட்": 7, "செப்டம்பர்": 8, "அக்டோபர்": 9, "நவம்பர்": 10, "டிசம்பர்": 11,
+            "பெப்ரவரி": 1 // Add phonetic variant seen in some months
         };
 
         // Simple parsing logic matching the Node.js script but browser-friendly
@@ -51,22 +52,26 @@ const CalendarView = () => {
 
         for (let i = 1; i < monthChunks.length; i++) {
             const chunk = monthChunks[i];
-            const monthMatch = chunk.match(/^([^ ]+) 2026/); // Assuming 2026 for now, could be dynamic
+
+            // More robust month matching (handle leading whitespace or tags)
+            const monthMatch = chunk.match(/(?:^|>)\s*([^ ]+)\s+2026/);
             if (!monthMatch) continue;
 
-            const monthName = monthMatch[1];
+            const monthName = monthMatch[1].trim();
             const monthIndex = tamilMonths[monthName];
 
             if (monthIndex === undefined) continue;
 
-            // Regex for date and links
-            // Providing global flag to iterate
-            const dateRegex = /<td[^>]*bgcolor="[^"]*">(\d+)<\/td>/g;
-            const linkRegex = /window\.location\.assign\('([^']+)'\)/g;
+            // Robust regex for date and links
+            // Dates are typically in a TD with a background color
+            const dateRegex = /<td[^>]*>(\d+)<\/td>/g;
+            // Links use window.location.assign, sometimes with JavaScript: prefix
+            const linkRegex = /(?:JavaScript:)?\s*window\.location\.assign\s*\(\s*'([^']+)'\s*\)/g;
 
             let match;
             while ((match = dateRegex.exec(chunk)) !== null) {
                 const dateNum = parseInt(match[1]);
+                if (dateNum < 1 || dateNum > 31) continue;
 
                 // Advance linkRegex to where date was found
                 linkRegex.lastIndex = dateRegex.lastIndex;
@@ -77,7 +82,7 @@ const CalendarView = () => {
                 if (readingMatch && saintMatch) {
                     const monthStr = String(monthIndex + 1).padStart(2, '0');
                     const dateStr = String(dateNum).padStart(2, '0');
-                    const key = `2026-${monthStr}-${dateStr}`; // Hardcoded 2026 based on URL
+                    const key = `2026-${monthStr}-${dateStr}`;
 
                     newData[key] = {
                         readingUrl: readingMatch[1],
@@ -213,7 +218,7 @@ const CalendarView = () => {
 
                                 <div className="flex flex-col gap-1 mt-1 w-full px-0.5">
                                     <span className={`text-[8px] sm:text-[10px] py-0.5 w-full text-center rounded ${today ? 'bg-black/20 text-black font-medium' : 'bg-neutral-900/80 text-green-400'}`}>
-                                        வாசகம்
+                                        சிந்தனை
                                     </span>
                                     {/* Hide Saint on tiny screens if needed, or keep small */}
                                     <span className={`text-[8px] sm:text-[10px] py-0.5 w-full text-center rounded ${today ? 'bg-black/20 text-black font-medium' : 'bg-neutral-900/80 text-blue-300'}`}>
@@ -259,7 +264,7 @@ const CalendarView = () => {
                                     <button
                                         onClick={() => navigate('/resource', {
                                             state: {
-                                                url: readingLink,
+                                                url: `https://www.bibleintamil.com/u_startingreflection.htm?target=${readingLink}`,
                                                 title: `இன்றைய சிந்தனை - ${selectedDate.getDate()} ${monthNames[selectedDate.getMonth()]}`
                                             }
                                         })}

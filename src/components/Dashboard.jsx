@@ -18,24 +18,28 @@ const resources = [
         url: "https://www.bibleintamil.com/u_fs-lectionary.htm",
         icon: Scroll,
         isHighlighted: true,
+        isInternal: true,
     },
     {
         title: "இறை அலைகள்",
         url: "https://www.bibleintamil.com/iraialai/starting-songtext.htm",
         icon: Radio,
         isHighlighted: true,
+        isInternal: true,
     },
     {
         title: "முத்துச்சரம்",
         url: "https://www.bibleintamil.com/songstext/starting-songtext.htm",
         icon: Music,
         isHighlighted: true,
+        isInternal: true,
     },
     {
         title: "திருப்பலி இராகங்கள்",
         url: "https://www.bibleintamil.com/u_fs-mass-raga.htm",
         icon: Mic2,
         isHighlighted: true,
+        isInternal: true,
     },
 ];
 
